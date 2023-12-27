@@ -1,0 +1,7 @@
+{
+  "name": "FutureVyavastha",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}
