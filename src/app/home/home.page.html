@@ -1,6 +1,6 @@
 <ion-header [translucent]="true" mode="ios">
   <ion-toolbar>
-    <ion-title>Paisa Paisa</ion-title>
+    <ion-title style="font-family: 'Monoton', sans-serif">Paisa Paisa</ion-title>
     <ion-title class="ion-text-right" style="padding-inline: 0">
       <ion-button
         (click)="setOpen(true)"
@@ -20,7 +20,7 @@
     <ion-toolbar style="padding: 0 16px">
       <ion-buttons slot="start">
         <ion-button color="dark" size="large" strong="true"
-          ><h1 class="ion-no-margin">Paisa Paisa</h1></ion-button
+          ><h1 class="ion-no-margin" style="font-family: 'Monoton', sans-serif">Paisa Paisa</h1></ion-button
         >
       </ion-buttons>
       <ion-buttons slot="end">
@@ -45,25 +45,56 @@
       <ion-row
         class="ion-text-center ion-margin-bottom border ion-padding-vertical ion-justify-content-around ion-align-items-center"
       >
-        <ion-col size="3" class="ion-padding sm-card">
+      <ion-col size="2.6" class="ion-padding sm-card">
+        <ion-text color="dark">
+          <ion-thumbnail id="hover-quota">
+            <img alt="quota" src="../../assets/expenses.png" />
+          </ion-thumbnail>
+          <ion-popover [trigger]="'hover-quota'" triggerAction="hover">
+            <ng-template>
+              <ion-content class="ion-padding">Current Daily Assigned Quota / Actual Daily Assigned Quota</ion-content>
+            </ng-template>
+          </ion-popover>
+          <b> {{calculateQuota(allAmounts?.current)}}/{{daysInMonth(allAmounts?.totalIncome)}} </b>
+        </ion-text>
+      </ion-col>
+        <ion-col size="2.6" class="ion-padding sm-card">
           <ion-text color="danger">
-            Spent
-            <br />
-            <b> {{spent}} </b>
+            <ion-thumbnail id="hover-spent">
+              <img alt="spent" src="../../assets/spending.png" />
+            </ion-thumbnail>
+            <ion-popover [trigger]="'hover-spent'" triggerAction="hover">
+              <ng-template>
+                <ion-content class="ion-padding">Money Spent Till-date</ion-content>
+              </ng-template>
+            </ion-popover>
+            <b> {{allAmounts?.spent}} </b>
           </ion-text>
         </ion-col>
-        <ion-col size="3" class="ion-padding sm-card">
-          <ion-text color="primary">
-            Current
-            <br />
-            <b> {{current}} </b>
-          </ion-text>
-        </ion-col>
-        <ion-col size="3" class="ion-padding sm-card">
+        <ion-col size="2.6" class="ion-padding sm-card">
           <ion-text color="success">
-            Savings
-            <br />
-            <b> {{savings}} </b>
+            <ion-thumbnail id="hover-current">
+              <img alt="current" src="../../assets/current.png" />
+            </ion-thumbnail>
+            <ion-popover [trigger]="'hover-current'" triggerAction="hover">
+              <ng-template>
+                <ion-content class="ion-padding">Current Money Available to Spent</ion-content>
+              </ng-template>
+            </ion-popover>
+            <b> {{allAmounts?.current}} </b>
+          </ion-text>
+        </ion-col>
+        <ion-col size="2.6" class="ion-padding sm-card">
+          <ion-text color="dark">
+            <ion-thumbnail id="hover-savings">
+              <img alt="savings" src="../../assets/savings.png" />
+            </ion-thumbnail>
+            <ion-popover [trigger]="'hover-savings'" triggerAction="hover">
+              <ng-template>
+                <ion-content class="ion-padding">Saving Amount</ion-content>
+              </ng-template>
+            </ion-popover>
+            <b> {{allAmounts?.savings}} </b>
           </ion-text>
         </ion-col>
       </ion-row>
@@ -76,8 +107,8 @@
 
       <ion-row>
         <ion-col>
-          <ion-list [inset]="true" style="margin-top: 0; border-radius: 16px">
-            <ion-item *ngFor="let transactionLog of transactionlist">
+          <ion-list [inset]="false" style="margin-top: 0; border-radius: 16px">
+            <ion-item *ngFor="let transactionLog of reverseList(transactionlist)">
               <ion-icon
                 slot="start"
                 size="large"
@@ -92,8 +123,8 @@
               </ion-label>
 
               <ion-label slot="end" style="display: contents">
-                <ion-label
-                  [id]="'hover-'+ dateToMillisec(transactionLog?.date)"
+                <ion-label 
+                  [id]="'hover-'+transactionLog?.id"
                   slot="start"
                   style="
                     overflow: hidden;
@@ -105,7 +136,7 @@
                 >
                   {{transactionLog?.des }}
                 </ion-label>
-                <ion-popover [trigger]="'hover-'+ dateToMillisec(transactionLog?.date)" triggerAction="hover">
+                <ion-popover [trigger]="'hover-'+transactionLog?.id" triggerAction="hover">
                   <ng-template>
                     <ion-content class="ion-padding">{{transactionLog?.des }}</ion-content>
                   </ng-template>
@@ -150,14 +181,14 @@
               labelPlacement="floating"
               helperText="Enter the amount"
               errorText="Invalid amount"
-              [(ngModel)]="trans.amount"
+              [(ngModel)]="transaction.amount"
               number
             ></ion-input>
           </ion-item>
           <ion-item>
             <ion-select
               placeholder="Select entry type"
-              [(ngModel)]="trans.type"
+              [(ngModel)]="transaction.type"
             >
               <div slot="label">
                 Type<ion-text color="danger">(Required)</ion-text>
@@ -169,7 +200,7 @@
           <ion-item>
             <ion-select
               placeholder="Select account"
-              [(ngModel)]="trans.account"
+              [(ngModel)]="transaction.account"
             >
               <div slot="label">
                 Account<ion-text color="danger">(Required)</ion-text>
@@ -183,8 +214,11 @@
               class="ion-margin-vertical"
               fill="solid"
               label="Descripation"
-              [(ngModel)]="trans.des"
+              [(ngModel)]="transaction.des"
             ></ion-textarea>
+          </ion-item>
+          <ion-item>
+            <ion-datetime hourCycle="h12" [(ngModel)]="date"></ion-datetime>
           </ion-item>
         </ion-list>
       </ion-content>

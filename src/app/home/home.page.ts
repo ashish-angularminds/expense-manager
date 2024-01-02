@@ -11,13 +11,16 @@ export class HomePage implements OnInit {
   @ViewChild(IonModal) modal: IonModal | any;
   _storage: Storage | null = null;
   isModalOpen = false;
-  trans = {
+  transaction = {
+    id: new Date().toString().split(' ').join(''),
     amount: 0,
     type: '',
     account: '',
     des: '',
-    date: new Date()
+    date: new Date(),
   };
+  date:any;
+  allAmounts: any;
   actionSheetButtons = [
     {
       text: 'Reset',
@@ -34,10 +37,7 @@ export class HomePage implements OnInit {
       },
     },
   ];
-  current: any = 0;
-  savings: any = 0;
-  spent: any = 0;
-  transactionlist:any = [];
+  transactionlist: any = [];
 
   constructor(
     private storage: Storage,
@@ -52,38 +52,38 @@ export class HomePage implements OnInit {
 
   async set() {
     let transactionSuccess = false;
-    let transaction = [];
-    transaction = (await this._storage?.get('trans')) || [];
 
-    if (this.trans.amount > 0) {
-      if (this.trans.type === 'income') {
-        if (this.trans.account === 'savings') {
-          let savings = (await this._storage?.get('savings')) || 0;
-          savings = savings + this.trans.amount;
-          await this._storage?.set('savings', savings);
+    if (this.transaction.amount > 0) {
+      if (this.transaction.type === 'income') {
+        if (this.transaction.account === 'savings') {
+          this.allAmounts.savings =
+            this.allAmounts.savings + this.transaction.amount;
+          this.setAmount();
           transactionSuccess = true;
-        } else if (this.trans.account === 'current') {
-          let current = (await this._storage?.get('current')) || 0;
-          current = current + this.trans.amount;
-          await this._storage?.set('current', current);
+        } else if (this.transaction.account === 'current') {
+          this.allAmounts.totalIncome =
+            this.allAmounts.totalIncome + this.transaction.amount;
+          this.allAmounts.current =
+            this.allAmounts.current + this.transaction.amount;
+          this.setAmount();
           transactionSuccess = true;
         } else {
           this.presentToast('Select the account!!');
         }
-      } else if (this.trans.type === 'expense') {
-        if (this.trans.account === 'savings') {
-          let savings = (await this._storage?.get('savings')) || 0;
-          savings = savings - this.trans.amount;
-          await this._storage?.set('savings', savings);
-          let spent = (await this._storage?.get('spent')) || 0;
-          spent = spent + this.trans.amount;
+      } else if (this.transaction.type === 'expense') {
+        if (this.transaction.account === 'savings') {
+          this.allAmounts.savings =
+            this.allAmounts.savings - this.transaction.amount;
+          this.allAmounts.spent =
+            this.allAmounts.spent + this.transaction.amount;
+          this.setAmount();
           transactionSuccess = true;
-        } else if (this.trans.account === 'current') {
-          let current = (await this._storage?.get('current')) || 0;
-          current = current - this.trans.amount;
-          await this._storage?.set('current', current);
-          let spent = (await this._storage?.get('spent')) || 0;
-          spent = spent + this.trans.amount;
+        } else if (this.transaction.account === 'current') {
+          this.allAmounts.current =
+            this.allAmounts.current - this.transaction.amount;
+          this.allAmounts.spent =
+            this.allAmounts.spent + this.transaction.amount;
+          this.setAmount();
           transactionSuccess = true;
         } else {
           this.presentToast('Select the account!!');
@@ -96,16 +96,18 @@ export class HomePage implements OnInit {
     }
 
     if (transactionSuccess) {
-      transaction = [...transaction, this.trans];
-      await this._storage?.set('trans', transaction);
+      this.transaction.date = this.date;
+      this.transactionlist = [...this.transactionlist, this.transaction];
+      await this._storage?.set('transactions', this.transactionlist);
       this.presentToast('success');
 
-      this.trans = {
+      this.transaction = {
+        id: new Date().toString().split(' ').join(''),
         amount: 0,
         type: '',
         account: '',
         des: '',
-        date: new Date()
+        date: new Date(),
       };
 
       transactionSuccess = false;
@@ -114,6 +116,10 @@ export class HomePage implements OnInit {
       this.presentToast('failed');
     }
     this.loadCart();
+  }
+
+  async setAmount() {
+    await this._storage?.set('allAmounts', this.allAmounts);
   }
 
   async reset(event: any) {
@@ -136,18 +142,40 @@ export class HomePage implements OnInit {
     });
     await toast.present();
   }
-
-  async loadCart() {
-    this.savings = (await this._storage?.get('savings')) || 0;
-    
-    this.current = (await this._storage?.get('current')) || 0;
-
-    this.spent = (await this._storage?.get('spent')) || 0;
-
-    this.transactionlist = (await this._storage?.get('trans')) || [];
+  calculateQuota(current: number) {
+    let date = new Date();
+    let days =
+      new Date(date.getUTCFullYear(), date.getUTCMonth() + 1, 0).getDate() -
+      (date.getUTCDay() - 1);
+    return Math.trunc(current / days);
   }
 
-  dateToMillisec(date:Date){
-    return new Date(date).getTime();
+  daysInMonth(amount:number) {
+    let date = new Date();
+    let days = new Date(date.getUTCFullYear(), date.getUTCMonth() + 1, 0).getDate();
+    return Math.trunc(amount / days);
+  }
+
+  async loadCart() {
+    let allAmt = {
+      current: 0,
+      savings: 0,
+      spent: 0,
+      quota: 0,
+      totalIncome: 0,
+    };
+
+    this.allAmounts = (await this._storage?.get('allAmounts')) || allAmt;
+
+    this.transactionlist = (await this._storage?.get('transactions')) || [];
+  }
+
+  reverseList(list:any){
+    return list.sort((a:any,b:any)=> {
+      const aDate:any = new Date(b.date); 
+      const bDate:any = new Date(a.date);
+      return aDate - bDate;
+    });
+    // return list.reverse();
   }
 }
