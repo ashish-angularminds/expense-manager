@@ -4,8 +4,27 @@
 }
 
 .sm-card {
-    background: rgba(255, 255, 255, 0.192);
-    border-radius: 18px;
+    border-radius: 16px;
+    box-shadow: 0 2px 20px rgba(255, 255, 255, 0.322);
+    background-image: url(../../assets/bg4.webp);
+    background-position: center;
+    background-size: cover;
+}
+
+.transaction-list {
+    padding: 0;
+    margin-top: 0; 
+    border-radius: 16px;
+}
+
+.title-text {
+    color: #000;
+    font-family:'Long Cang', cursive;
+}
+
+.amount-text {
+    color: #000; 
+    font-family: 'Staatliches', sans-serif;
 }
 
 ion-thumbnail {
@@ -22,4 +41,11 @@ ion-datetime {
     margin-bottom: 16px;
     border-radius: 16px;
     box-shadow: rgba(var(--ion-color-rose-rgb), 0.3) 0px 10px 15px -3px;
-  }
+}
+
+ion-input {
+    --border-color: #fff !important;
+    --border-style: solid !important;
+    --border-width: 2px !important;
+    --highlight-color: var(--ion-color-primary) !important;
+}

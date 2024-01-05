@@ -12,14 +12,13 @@ export class HomePage implements OnInit {
   _storage: Storage | null = null;
   isModalOpen = false;
   transaction = {
-    id: new Date().toString().split(' ').join(''),
+    id: '',
     amount: 0,
     type: '',
     account: '',
     des: '',
-    date: new Date(),
+    date: new Date().toISOString(),
   };
-  date:any;
   allAmounts: any;
   actionSheetButtons = [
     {
@@ -37,7 +36,7 @@ export class HomePage implements OnInit {
       },
     },
   ];
-  transactionlist: any = [];
+  transactionlist: any[] = [];
 
   constructor(
     private storage: Storage,
@@ -56,34 +55,30 @@ export class HomePage implements OnInit {
     if (this.transaction.amount > 0) {
       if (this.transaction.type === 'income') {
         if (this.transaction.account === 'savings') {
-          this.allAmounts.savings =
-            this.allAmounts.savings + this.transaction.amount;
-          this.setAmount();
+          this.setSavings(this.transaction.amount);
           transactionSuccess = true;
         } else if (this.transaction.account === 'current') {
-          this.allAmounts.totalIncome =
-            this.allAmounts.totalIncome + this.transaction.amount;
-          this.allAmounts.current =
-            this.allAmounts.current + this.transaction.amount;
-          this.setAmount();
+          this.setCurrent(this.transaction.amount);
+          transactionSuccess = true;
+        } else if (this.transaction.account === 'personal') {
+          this.setTotalPersonal(this.transaction.amount);
+          this.setPersonal(this.transaction.amount);
           transactionSuccess = true;
         } else {
           this.presentToast('Select the account!!');
         }
       } else if (this.transaction.type === 'expense') {
         if (this.transaction.account === 'savings') {
-          this.allAmounts.savings =
-            this.allAmounts.savings - this.transaction.amount;
-          this.allAmounts.spent =
-            this.allAmounts.spent + this.transaction.amount;
-          this.setAmount();
+          this.setSavings(-this.transaction.amount);
+          this.setSpent(this.transaction.amount);
           transactionSuccess = true;
         } else if (this.transaction.account === 'current') {
-          this.allAmounts.current =
-            this.allAmounts.current - this.transaction.amount;
-          this.allAmounts.spent =
-            this.allAmounts.spent + this.transaction.amount;
-          this.setAmount();
+          this.setCurrent(-this.transaction.amount);
+          this.setSpent(this.transaction.amount);
+          transactionSuccess = true;
+        } else if (this.transaction.account === 'personal') {
+          this.setPersonal(-this.transaction.amount);
+          this.setSpent(this.transaction.amount);
           transactionSuccess = true;
         } else {
           this.presentToast('Select the account!!');
@@ -96,18 +91,20 @@ export class HomePage implements OnInit {
     }
 
     if (transactionSuccess) {
-      this.transaction.date = this.date;
+      this.setAmount();
+      this.transaction.id = this.transaction.date;
       this.transactionlist = [...this.transactionlist, this.transaction];
-      await this._storage?.set('transactions', this.transactionlist);
+      this.setTransaction();
+      setTimeout(()=>{this.loadCart()},1000);
       this.presentToast('success');
 
       this.transaction = {
-        id: new Date().toString().split(' ').join(''),
+        id: '',
         amount: 0,
         type: '',
         account: '',
         des: '',
-        date: new Date(),
+        date: new Date().toISOString(),
       };
 
       transactionSuccess = false;
@@ -115,11 +112,67 @@ export class HomePage implements OnInit {
     } else {
       this.presentToast('failed');
     }
-    this.loadCart();
+  }
+
+  deleteTransaction(transactionLog: any) {
+
+    if (transactionLog.amount > 0) {
+      if (transactionLog.type === 'income') {
+        if (transactionLog.account === 'savings') {
+          this.setSavings(-transactionLog.amount);
+        } else if (transactionLog.account === 'current') {
+          this.setCurrent(-transactionLog.amount);
+        } else if (transactionLog.account === 'personal') {
+          this.setTotalPersonal(-transactionLog.amount);
+          this.setPersonal(-transactionLog.amount);
+        }
+      } else if (transactionLog.type === 'expense') {
+        if (transactionLog.account === 'savings') {
+          this.setSavings(transactionLog.amount);
+          this.setSpent(-transactionLog.amount);
+        } else if (transactionLog.account === 'current') {
+          this.setCurrent(transactionLog.amount);
+          this.setSpent(-transactionLog.amount);
+        } else if (transactionLog.account === 'personal') {
+          this.setPersonal(transactionLog.amount);
+          this.setSpent(-transactionLog.amount);
+        }
+      }
+    }
+
+    this.transactionlist = this.transactionlist.filter(
+      (value, index, array) => value.id !== transactionLog.id
+    );
+    this.setAmount();
+    this.setTransaction();
   }
 
   async setAmount() {
     await this._storage?.set('allAmounts', this.allAmounts);
+  }
+
+  async setTransaction() {
+    await this._storage?.set('transactions', this.transactionlist);
+  }
+
+  setSpent(amount: number) {
+    this.allAmounts.spent = this.allAmounts.spent + amount;
+  }
+
+  setSavings(amount: number) {
+    this.allAmounts.savings = this.allAmounts.savings + amount;
+  }
+
+  setCurrent(amount: number) {
+    this.allAmounts.current = this.allAmounts.current + amount;
+  }
+
+  setPersonal(amount: number) {
+    this.allAmounts.personal = this.allAmounts.personal + amount;
+  }
+
+  setTotalPersonal(amount: number) {
+    this.allAmounts.totalPersonal = this.allAmounts.totalPersonal + amount;
   }
 
   async reset(event: any) {
@@ -142,17 +195,22 @@ export class HomePage implements OnInit {
     });
     await toast.present();
   }
-  calculateQuota(current: number) {
+
+  calculateQuota(amount: number) {
     let date = new Date();
     let days =
       new Date(date.getUTCFullYear(), date.getUTCMonth() + 1, 0).getDate() -
       (date.getUTCDay() - 1);
-    return Math.trunc(current / days);
+    return Math.trunc(amount / days);
   }
 
-  daysInMonth(amount:number) {
+  daysInMonth(amount: number) {
     let date = new Date();
-    let days = new Date(date.getUTCFullYear(), date.getUTCMonth() + 1, 0).getDate();
+    let days = new Date(
+      date.getUTCFullYear(),
+      date.getUTCMonth() + 1,
+      0
+    ).getDate();
     return Math.trunc(amount / days);
   }
 
@@ -161,19 +219,17 @@ export class HomePage implements OnInit {
       current: 0,
       savings: 0,
       spent: 0,
-      quota: 0,
-      totalIncome: 0,
+      personal: 0,
+      totalPersonal: 0,
     };
-
     this.allAmounts = (await this._storage?.get('allAmounts')) || allAmt;
-
     this.transactionlist = (await this._storage?.get('transactions')) || [];
   }
 
-  reverseList(list:any){
-    return list.sort((a:any,b:any)=> {
-      const aDate:any = new Date(b.date); 
-      const bDate:any = new Date(a.date);
+  reverseList(list: any) {
+    return list.sort((a: any, b: any) => {
+      const aDate: any = new Date(b.date);
+      const bDate: any = new Date(a.date);
       return aDate - bDate;
     });
     // return list.reverse();
